@@ -14,6 +14,14 @@ def test_variable():
     }) == 42
 
 
+def test_list():
+    assert run({
+        '$spam': 42,
+        '$eggs': ['foo', '$spam', {'#': 'bar'}],
+        '#': '$eggs'
+    }) == ['foo', 42, 'bar']
+
+
 def test_function():
     assert run({
         'spam': {
@@ -45,6 +53,18 @@ def test_side_effect(capsys):
     }) == 42
 
     assert capsys.readouterr().out == 'spam\n'
+
+
+def test_named_params():
+    assert run({
+        'spam': {
+            '@params': ['foo', 'bar'],
+            '+': ['$foo', '$bar']
+        },
+        '#': {
+            'spam': [40, 2]
+        }
+    }) == 42
 
 
 def _test_recursion():

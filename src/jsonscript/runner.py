@@ -16,11 +16,18 @@ STD = {
 }
 
 
+def get_mapping(json, params):
+    return zip(json.get(
+        '@params',
+        range(len(params))
+    ), params)
+
+
 def init_scope(context=None, params=()):
     context = (context or STD).copy()
 
-    for index, value in enumerate(params):
-        assign(context, f'${index}', value)
+    for key, value in params:
+        assign(context, f'${key}', value)
 
     return context
 
@@ -35,6 +42,10 @@ def is_variable(value):
 
 def is_side_effect(value):
     return starts_with(value, '&')
+
+
+def is_directive(value):
+    return starts_with(value, '@')
 
 
 def evaluate(context, value):
@@ -65,7 +76,8 @@ def call(context, key, params):
 
 
 def run(json, context=None, *params):
-    context = init_scope(context, params)
+    mapping = get_mapping(json, params)
+    context = init_scope(context, mapping)
 
     for key, value in json.items():
         if key == '#':
@@ -73,6 +85,9 @@ def run(json, context=None, *params):
 
         if is_variable(key):
             assign(context, key, evaluate(context, value))
+
+        elif is_directive(key):
+            pass
 
         elif isinstance(value, dict):
             assign(context, key, partial(run, value, context))
