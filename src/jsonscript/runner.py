@@ -33,8 +33,8 @@ def is_variable(value):
     return starts_with(value, '$')
 
 
-def is_function(value):
-    return starts_with(value, '@')
+def is_side_effect(value):
+    return starts_with(value, '&')
 
 
 def evaluate(context, value):
@@ -78,7 +78,7 @@ def run(json, context=None, *params):
             assign(context, key, partial(run, value, context))
 
         elif isinstance(value, (list, tuple)):
-            if starts_with(key, '&'):
+            if is_side_effect(key):
                 call(context, key[1:], value)
             else:
                 return call(context, key, value)

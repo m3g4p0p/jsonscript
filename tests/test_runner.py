@@ -36,3 +36,24 @@ def test_preserve_scope():
             'spam': ['$eggs']
         }
     }) == 42
+
+
+def test_side_effect(capsys):
+    assert run({
+        '&print': ['spam'],
+        '#': 42
+    }) == 42
+
+    assert capsys.readouterr().out == 'spam\n'
+
+
+def _test_recursion():
+    assert run({
+        'fac': {
+            'if': [{'is': ['$0', 1]}, 1, {
+                '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
+            }]
+        },
+        '#': {'fac': [5]}
+
+    }) == 120
