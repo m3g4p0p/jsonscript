@@ -46,13 +46,40 @@ def test_preserve_scope():
     }) == 42
 
 
-def test_side_effect(capsys):
+def test_side_effect_call(capsys):
     assert run({
         '&print': ['spam'],
         '#': 42
     }) == 42
 
     assert capsys.readouterr().out == 'spam\n'
+
+
+def test_side_effect_declaration():
+    assert run({
+        '&spam': {
+            '+': ['$0', '$eggs']
+        },
+        '#': {
+            '$eggs': 41,
+            'spam': [1]
+        }
+    }) == 42
+
+
+def test_side_effect_call_and_declaration(capsys):
+    assert run({
+        '&spam': {
+            '&print': [{'+': ['$0', '$eggs']}]
+        },
+        '#': {
+            '$eggs': 41,
+            '&spam': [1],
+            '#': 'spam'
+        }
+    }) == 'spam'
+
+    assert capsys.readouterr().out == '42\n'
 
 
 def test_named_params():

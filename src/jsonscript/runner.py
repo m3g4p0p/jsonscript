@@ -1,26 +1,7 @@
 from functools import partial
 
-STD = {
-    'if': lambda condition, if_true, if_false=None: (
-        if_true if condition else if_false
-    ),
-    'print': lambda *params: print(' '.join(map(str, params))),
-    'or': lambda x, y: x or y,
-    'and': lambda x, y: x and y,
-    'not': lambda x: not x,
-    'is': lambda x, y: x == y,
-    '+': lambda x, y: x + y,
-    '-': lambda x, y: x - y,
-    '*': lambda x, y: x * y,
-    '/': lambda x, y: x / y,
-}
-
-
-def get_mapping(json, params):
-    return zip(json.get(
-        '@params',
-        range(len(params))
-    ), params)
+from .directives import get_params
+from .std import STD
 
 
 def init_scope(context=None, params=()):
@@ -76,21 +57,24 @@ def call(context, key, params):
 
 
 def run(json, context=None, *params):
-    mapping = get_mapping(json, params)
-    context = init_scope(context, mapping)
+    params = get_params(json, params)
+    context = init_scope(context, params)
 
     for key, value in json.items():
         if key == '#':
             return evaluate(context, value)
 
-        if is_variable(key):
-            assign(context, key, evaluate(context, value))
-
-        elif is_directive(key):
+        if is_directive(key):
             pass
 
+        elif is_variable(key):
+            assign(context, key, evaluate(context, value))
+
         elif isinstance(value, dict):
-            assign(context, key, partial(run, value, context))
+            if is_side_effect(key):
+                assign(context, key[1:], value)
+            else:
+                assign(context, key, partial(run, value, context))
 
         elif isinstance(value, (list, tuple)):
             if is_side_effect(key):
