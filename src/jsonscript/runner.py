@@ -1,6 +1,7 @@
 from functools import partial
 
 from .directives import get_params
+from .prefix import is_directive, is_maybe, is_reference, is_variable, is_void
 from .std import STD
 
 
@@ -24,22 +25,6 @@ def init_scope(context=None, params=()):
     return context
 
 
-def starts_with(value, char):
-    return isinstance(value, str) and value.startswith(char)
-
-
-def is_variable(value):
-    return starts_with(value, '$')
-
-
-def is_modifier(value):
-    return starts_with(value, '&')
-
-
-def is_directive(value):
-    return starts_with(value, '@')
-
-
 def evaluate(context, value):
     if isinstance(value, (tuple, list)):
         return list(map(partial(evaluate, context), value))
@@ -50,7 +35,7 @@ def evaluate(context, value):
     if is_variable(value):
         return context[value]
 
-    if is_modifier(value):
+    if is_reference(value):
         return context[value[1:]]
 
     return value
@@ -91,14 +76,17 @@ def run(json, context=None, *params):
             assign(context, key, evaluate(context, value))
 
         elif isinstance(value, dict):
-            if is_modifier(key):
+            if is_reference(key):
                 assign(context, key[1:], value)
             else:
                 assign(context, key, partial(run, value, context))
 
         elif isinstance(value, (list, tuple)):
-            if is_modifier(key):
-                call(context, key[1:], value)
+            if is_void(key) or is_maybe(key):
+                result = call(context, key[1:], value)
+
+                if is_maybe(key) and result:
+                    return result
             else:
                 return call(context, key, value)
 
