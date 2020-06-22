@@ -3,31 +3,31 @@
 from jsonscript.runner import run
 
 
-def test_return():
-    assert run({'#': 42}) == 42
+class TestStatements:
+    def test_return(self):
+        assert run({'#': 42}) == 42
+
+    def test_maybe(self):
+        assert run({'?': 42, '#': 'spam'}) == 42
+        assert run({'?': None, '#': 'spam'}) == 'spam'
 
 
-def test_maybe():
-    assert run({'?': 42, '#': 'spam'}) == 42
-    assert run({'?': None, '#': 'spam'}) == 'spam'
+class TestVariables:
+    def test_primitive(self):
+        assert run({
+            '$spam': 42,
+            '#': '$spam'
+        }) == 42
+
+    def test_list(self):
+        assert run({
+            '$spam': 42,
+            '$eggs': ['foo', '$spam', {'#': 'bar'}],
+            '#': '$eggs'
+        }) == ['foo', 42, 'bar']
 
 
-def test_variable():
-    assert run({
-        '$spam': 42,
-        '#': '$spam'
-    }) == 42
-
-
-def test_list_assignment():
-    assert run({
-        '$spam': 42,
-        '$eggs': ['foo', '$spam', {'#': 'bar'}],
-        '#': '$eggs'
-    }) == ['foo', 42, 'bar']
-
-
-class TestFunction:
+class TestFunctions:
     def test_return(self):
         assert run({
             'spam': {
@@ -80,8 +80,8 @@ class TestDirectives:
         }) == 42
 
 
-class TestReference:
-    def test_call_scope(self):
+class TestReferences:
+    def test_scope_reference(self):
         assert run({
             '&spam': {
                 '+': ['$0', '$eggs']
@@ -92,7 +92,7 @@ class TestReference:
             }
         }) == 42
 
-    def test_callback(self):
+    def test_callback_reference(self):
         assert run({
             'spam': {
                 '@params': ['callback', '$value'],
@@ -120,11 +120,29 @@ class TestReference:
         }) == 42
 
 
-def test_recursion():
-    assert run({
-        'fac': {
-            '?if': [{'is': ['$0', 1]}, 1],
-            '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
-        },
-        '#': {'fac': [5]}
-    }) == 120
+class TestAlgorithms:
+    def test_factorial(self):
+        assert run({
+            'fac': {
+                '?if': [{'is': ['$0', 1]}, 1],
+                '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
+            },
+            '#': {'fac': [5]}
+        }) == 120
+
+    def test_fibonacci(self):
+        assert run({
+            'fibo': {
+                '?if': [{'or': [
+                    {'is': ['$0', 1]},
+                    {'is': ['$0', 2]}
+                ]}, 1],
+                '+': [
+                    {'fibo': [{'-': ['$0', 1]}]},
+                    {'fibo': [{'-': ['$0', 2]}]}
+                ]
+            },
+            '#': {
+                'fibo': [7]
+            }
+        }) == 13
