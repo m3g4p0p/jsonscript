@@ -46,67 +46,70 @@ def test_preserve_scope():
     }) == 42
 
 
-def test_named_params():
-    assert run({
-        'spam': {
-            '@params': ['foo', 'bar'],
-            '+': ['$foo', '$bar']
-        },
-        '#': {
-            'spam': [40, 2]
-        }
-    }) == 42
-
-
-def test_modifier_no_return(capsys):
-    assert run({
-        '&print': ['spam'],
-        '#': 42
-    }) == 42
-
-    assert capsys.readouterr().out == 'spam\n'
-
-
-def test_modifier_call_scope():
-    assert run({
-        '&spam': {
-            '+': ['$0', '$eggs']
-        },
-        '#': {
-            '$eggs': 41,
-            'spam': [1]
-        }
-    }) == 42
-
-
-def test_modifier_combined(capsys):
-    assert run({
-        '&spam': {
-            '&print': [{'+': ['$0', '$eggs']}]
-        },
-        '#': {
-            '$eggs': 41,
-            '&spam': [1],
-            '#': 'spam'
-        }
-    }) == 'spam'
-
-    assert capsys.readouterr().out == '42\n'
-
-
-def test_modifier_callback():
-    assert run({
-        'spam': {
-            '@params': ['callback', 'value'],
-            'callback': ['$value']
-        },
-        '#': {
-            'eggs': {
-                '+': ['$0', 1]
+class TestDirectives:
+    def test_params(self):
+        assert run({
+            'spam': {
+                '@params': ['foo', 'bar'],
+                '+': ['$foo', '$bar']
             },
-            'spam': ['&eggs', 41]
-        }
-    })
+            '#': {
+                'spam': [40, 2]
+            }
+        }) == 42
+
+
+class TestModifier:
+    def test_no_return(self, capsys):
+        assert run({
+            '&print': ['spam'],
+            '#': 42
+        }) == 42
+
+        assert capsys.readouterr().out == 'spam\n'
+
+    def test_call_scope(self):
+        assert run({
+            '&spam': {
+                '+': ['$0', '$eggs']
+            },
+            '#': {
+                '$eggs': 41,
+                'spam': [1]
+            }
+        }) == 42
+
+    def test_callback(self):
+        assert run({
+            'spam': {
+                '@params': ['callback', 'value'],
+                'callback': ['$value']
+            },
+            '#': {
+                'eggs': {
+                    '+': ['$0', 1]
+                },
+                'spam': ['&eggs', 41]
+            }
+        })
+
+    def test_combined(self, capsys):
+        assert run({
+            '&spam': {
+                '&print': [{'+': ['$0', '$eggs']}]
+            },
+            '&ham': {
+                '@params': ['callback'],
+                'callback': [1]
+            },
+            '#': {
+                '$eggs': 41,
+                '&ham': ['&spam'],
+                '#': 'spam'
+            }
+        }) == 'spam'
+
+        assert capsys.readouterr().out == '42\n'
 
 
 def _test_recursion():
