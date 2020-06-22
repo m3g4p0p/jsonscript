@@ -4,11 +4,22 @@ from .directives import get_params
 from .std import STD
 
 
+def is_callable(value):
+    return callable(value) or isinstance(value, dict)
+
+
+def prefix(key, value):
+    if is_callable(value):
+        return key
+
+    return f'${key}'
+
+
 def init_scope(context=None, params=()):
     context = (context or STD).copy()
 
     for key, value in params:
-        assign(context, f'${key}', value)
+        assign(context, prefix(key, value), value)
 
     return context
 
@@ -21,7 +32,7 @@ def is_variable(value):
     return starts_with(value, '$')
 
 
-def is_side_effect(value):
+def is_modifier(value):
     return starts_with(value, '&')
 
 
@@ -38,6 +49,9 @@ def evaluate(context, value):
 
     if is_variable(value):
         return context[value]
+
+    if is_modifier(value):
+        return context[value[1:]]
 
     return value
 
@@ -71,13 +85,13 @@ def run(json, context=None, *params):
             assign(context, key, evaluate(context, value))
 
         elif isinstance(value, dict):
-            if is_side_effect(key):
+            if is_modifier(key):
                 assign(context, key[1:], value)
             else:
                 assign(context, key, partial(run, value, context))
 
         elif isinstance(value, (list, tuple)):
-            if is_side_effect(key):
+            if is_modifier(key):
                 call(context, key[1:], value)
             else:
                 return call(context, key, value)

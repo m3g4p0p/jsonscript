@@ -46,7 +46,19 @@ def test_preserve_scope():
     }) == 42
 
 
-def test_side_effect_call(capsys):
+def test_named_params():
+    assert run({
+        'spam': {
+            '@params': ['foo', 'bar'],
+            '+': ['$foo', '$bar']
+        },
+        '#': {
+            'spam': [40, 2]
+        }
+    }) == 42
+
+
+def test_modifier_no_return(capsys):
     assert run({
         '&print': ['spam'],
         '#': 42
@@ -55,7 +67,7 @@ def test_side_effect_call(capsys):
     assert capsys.readouterr().out == 'spam\n'
 
 
-def test_side_effect_declaration():
+def test_modifier_call_scope():
     assert run({
         '&spam': {
             '+': ['$0', '$eggs']
@@ -67,7 +79,7 @@ def test_side_effect_declaration():
     }) == 42
 
 
-def test_side_effect_call_and_declaration(capsys):
+def test_modifier_combined(capsys):
     assert run({
         '&spam': {
             '&print': [{'+': ['$0', '$eggs']}]
@@ -82,16 +94,19 @@ def test_side_effect_call_and_declaration(capsys):
     assert capsys.readouterr().out == '42\n'
 
 
-def test_named_params():
+def test_modifier_callback():
     assert run({
         'spam': {
-            '@params': ['foo', 'bar'],
-            '+': ['$foo', '$bar']
+            '@params': ['callback', 'value'],
+            'callback': ['$value']
         },
         '#': {
-            'spam': [40, 2]
+            'eggs': {
+                '+': ['$0', 1]
+            },
+            'spam': ['&eggs', 41]
         }
-    }) == 42
+    })
 
 
 def _test_recursion():
