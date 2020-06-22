@@ -11,6 +11,14 @@ class TestStatements:
         assert run({'?': 42, '#': 'spam'}) == 42
         assert run({'?': None, '#': 'spam'}) == 'spam'
 
+    def test_void(self, capsys):
+        assert run({
+            '!': {'print': ['spam']},
+            '#': 42
+        }) == 42
+
+        assert capsys.readouterr().out == 'spam\n'
+
 
 class TestVariables:
     def test_primitive(self):

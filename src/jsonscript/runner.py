@@ -1,6 +1,6 @@
 from functools import partial
+from itertools import starmap
 
-from .directives import get_params
 from .prefix import is_directive, is_maybe, is_reference, is_variable, is_void
 from .std import STD
 
@@ -9,18 +9,28 @@ def is_callable(value):
     return callable(value) or isinstance(value, dict)
 
 
-def prefix(key, value):
+def add_sigil(key, value):
     if is_callable(value) or is_variable(key):
-        return key
+        return key, value
 
-    return f'${key}'
+    return f'${key}', value
+
+
+def get_params(json, params):
+    return starmap(
+        add_sigil,
+        zip(json.get(
+            '@params',
+            range(len(params))
+        ), params)
+    )
 
 
 def init_scope(context=None, params=()):
     context = (context or STD).copy()
 
     for key, value in params:
-        assign(context, prefix(key, value), value)
+        assign(context, key, value)
 
     return context
 
@@ -63,10 +73,10 @@ def run(json, context=None, *params):
         if key == '#':
             return evaluate(context, value)
 
-        if key == '?':
+        if key == '?' or key == '!':
             result = evaluate(context, value)
 
-            if result:
+            if is_maybe(key) and result:
                 return result
 
         elif is_directive(key):
