@@ -7,6 +7,11 @@ def test_return():
     assert run({'#': 42}) == 42
 
 
+def test_maybe():
+    assert run({'?': 42, '#': 'spam'}) == 42
+    assert run({'?': None, '#': 'spam'}) == 'spam'
+
+
 def test_variable():
     assert run({
         '$spam': 42,
@@ -50,7 +55,7 @@ class TestDirectives:
     def test_params(self):
         assert run({
             'spam': {
-                '@params': ['foo', 'bar'],
+                '@params': ['$foo', '$bar'],
                 '+': ['$foo', '$bar']
             },
             '#': {
@@ -82,7 +87,7 @@ class TestModifier:
     def test_callback(self):
         assert run({
             'spam': {
-                '@params': ['callback', 'value'],
+                '@params': ['callback', '$value'],
                 'callback': ['$value']
             },
             '#': {
@@ -112,13 +117,11 @@ class TestModifier:
         assert capsys.readouterr().out == '42\n'
 
 
-def _test_recursion():
+def test_recursion():
     assert run({
         'fac': {
-            'if': [{'is': ['$0', 1]}, 1, {
-                '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
-            }]
+            '?': {'if': [{'is': ['$0', 1]}, 1]},
+            '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
         },
         '#': {'fac': [5]}
-
     }) == 120

@@ -9,7 +9,7 @@ def is_callable(value):
 
 
 def prefix(key, value):
-    if is_callable(value):
+    if is_callable(value) or is_variable(key):
         return key
 
     return f'${key}'
@@ -78,7 +78,13 @@ def run(json, context=None, *params):
         if key == '#':
             return evaluate(context, value)
 
-        if is_directive(key):
+        if key == '?':
+            result = evaluate(context, value)
+
+            if result:
+                return result
+
+        elif is_directive(key):
             pass
 
         elif is_variable(key):
