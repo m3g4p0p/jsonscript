@@ -87,6 +87,6 @@ def run(json, context=None, *params):
                 return call(context, key, value)
 
         else:
-            raise SyntaxError(f'Invalid function declaration {key}: {value}')
+            raise SyntaxError(f'Unexpected identifier {key}')
 
     return None

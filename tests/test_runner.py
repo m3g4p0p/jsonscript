@@ -41,6 +41,22 @@ class TestAssignment:
         }) == 42
 
 
+class TestLists:
+    def test_push(self):
+        assert run({
+            '=spam': [42],
+            '!push': ['&spam', 'eggs'],
+            '#': '&spam'
+        }) == [42, 'eggs']
+
+    def test_pop(self):
+        assert run({
+            '=spam': [42, 'eggs'],
+            '=eggs': {'pop': ['&spam']},
+            '#': ['&spam', '&eggs']
+        }) == [[42], 'eggs']
+
+
 class TestFunctions:
     def test_return(self):
         assert run({

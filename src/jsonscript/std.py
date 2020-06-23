@@ -11,4 +11,8 @@ STD = {
     '-': lambda x, y: x - y,
     '*': lambda x, y: x * y,
     '/': lambda x, y: x / y,
+    'push': lambda list, value: list.append(value) or value,
+    'pop': lambda list: list.pop(),
+    'length': lambda list: len(list),
+    'copy': lambda list: list.copy()
 }
