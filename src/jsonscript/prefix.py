@@ -2,8 +2,8 @@ def starts_with(value, char):
     return isinstance(value, str) and value.startswith(char)
 
 
-def is_variable(value):
-    return starts_with(value, '$')
+def is_assignment(value):
+    return starts_with(value, '=')
 
 
 def is_reference(value):

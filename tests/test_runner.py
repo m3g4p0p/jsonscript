@@ -20,26 +20,32 @@ class TestStatements:
         assert capsys.readouterr().out == 'spam\n'
 
 
-class TestVariables:
+class TestAssignment:
     def test_primitive(self):
         assert run({
-            '$spam': 42,
-            '#': '$spam'
+            '=spam': 42,
+            '#': '&spam'
         }) == 42
 
-    def test_list(self):
+    def test_evaluate_list(self):
         assert run({
-            '$spam': 42,
-            '$eggs': ['foo', '$spam', {'#': 'bar'}],
-            '#': '$eggs'
+            '=spam': 42,
+            '=eggs': ['foo', '&spam', {'#': 'bar'}],
+            '#': '&eggs'
         }) == ['foo', 42, 'bar']
+
+    def test_evaluate_dict(self):
+        assert run({
+            '=spam': {'#': 42},
+            '#': '&spam'
+        }) == 42
 
 
 class TestFunctions:
     def test_return(self):
         assert run({
             'spam': {
-                '+': ['$0', 1]
+                '+': ['&0', 1]
             },
             '#': {
                 'spam': [41]
@@ -62,25 +68,13 @@ class TestFunctions:
             }
         }) == 42
 
-    def test_preserve_scope(self):
-        assert run({
-            '$eggs': 1,
-            'spam': {
-                '+': ['$0', '$eggs']
-            },
-            '#': {
-                '$eggs': 41,
-                'spam': ['$eggs']
-            }
-        }) == 42
-
 
 class TestDirectives:
     def test_params(self):
         assert run({
             'spam': {
-                '@params': ['$foo', '$bar'],
-                '+': ['$foo', '$bar']
+                '@params': ['foo', 'bar'],
+                '+': ['&foo', '&bar']
             },
             '#': {
                 'spam': [40, 2]
@@ -89,13 +83,25 @@ class TestDirectives:
 
 
 class TestReferences:
+    def test_preserve_scope(self):
+        assert run({
+            '=eggs': 1,
+            'spam': {
+                '+': ['&0', '&eggs']
+            },
+            '#': {
+                '=eggs': 41,
+                'spam': ['&eggs']
+            }
+        }) == 42
+
     def test_scope_reference(self):
         assert run({
             '&spam': {
-                '+': ['$0', '$eggs']
+                '+': ['&0', '&eggs']
             },
             '#': {
-                '$eggs': 41,
+                '=eggs': 41,
                 'spam': [1]
             }
         }) == 42
@@ -103,12 +109,12 @@ class TestReferences:
     def test_callback_reference(self):
         assert run({
             'spam': {
-                '@params': ['callback', '$value'],
-                'callback': ['$value']
+                '@params': ['callback', 'value'],
+                'callback': ['&value']
             },
             '#': {
                 'eggs': {
-                    '+': ['$0', 1]
+                    '+': ['&0', 1]
                 },
                 'spam': ['&eggs', 41]
             }
@@ -116,13 +122,13 @@ class TestReferences:
 
     def test_combined(self):
         assert run({
-            '&spam': {'+': ['$0', '$eggs']},
+            '&spam': {'+': ['&0', '&eggs']},
             '&ham': {
                 '@params': ['callback'],
                 'callback': [1]
             },
             '#': {
-                '$eggs': 41,
+                '=eggs': 41,
                 'ham': ['&spam']
             }
         }) == 42
@@ -132,8 +138,8 @@ class TestAlgorithms:
     def test_factorial(self):
         assert run({
             'fac': {
-                '?if': [{'is': ['$0', 1]}, 1],
-                '*': ['$0', {'fac': [{'-': ['$0', 1]}]}]
+                '?if': [{'is': ['&0', 1]}, 1],
+                '*': ['&0', {'fac': [{'-': ['&0', 1]}]}]
             },
             '#': {'fac': [5]}
         }) == 120
@@ -142,12 +148,12 @@ class TestAlgorithms:
         assert run({
             'fibo': {
                 '?if': [{'or': [
-                    {'is': ['$0', 1]},
-                    {'is': ['$0', 2]}
+                    {'is': ['&0', 1]},
+                    {'is': ['&0', 2]}
                 ]}, 1],
                 '+': [
-                    {'fibo': [{'-': ['$0', 1]}]},
-                    {'fibo': [{'-': ['$0', 2]}]}
+                    {'fibo': [{'-': ['&0', 1]}]},
+                    {'fibo': [{'-': ['&0', 2]}]}
                 ]
             },
             '#': {
