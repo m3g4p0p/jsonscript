@@ -1,11 +1,13 @@
 from functools import partial
 
-from .prefix import is_assignment, is_directive, is_maybe, is_reference, is_void
+from .prefix import is_assignment, is_directive, is_reference
 from .std import STD
 
+STATEMENTS = ('#', '?', '!')
 
-def is_callable(value):
-    return callable(value) or isinstance(value, dict)
+
+def is_listable(value):
+    return isinstance(value, (list, tuple))
 
 
 def get_params(json, params):
@@ -25,7 +27,7 @@ def init_scope(context=None, params=()):
 
 
 def evaluate(context, value):
-    if isinstance(value, (tuple, list)):
+    if is_listable(value):
         return list(map(partial(evaluate, context), value))
 
     if isinstance(value, dict):
@@ -56,13 +58,15 @@ def run(json, context=None, *params):
     context = init_scope(context, params)
 
     for key, value in json.items():
-        if key == '#':
-            return evaluate(context, value)
+        prefix, func = key[:1], key[1:]
 
-        if key == '?' or key == '!':
-            result = evaluate(context, value)
+        if prefix in STATEMENTS:
+            if func:
+                result = call(context, func, value)
+            else:
+                result = evaluate(context, value)
 
-            if is_maybe(key) and result:
+            if prefix == '#' or prefix == '?' and result is not None:
                 return result
 
         elif is_directive(key):
@@ -71,22 +75,13 @@ def run(json, context=None, *params):
         elif is_assignment(key):
             assign(context, key[1:], evaluate(context, value))
 
-        elif isinstance(value, dict):
-            if is_reference(key):
-                assign(context, key[1:], value)
-            else:
-                assign(context, key, partial(run, value, context))
+        elif is_listable(value):
+            return call(context, key, value)
 
-        elif isinstance(value, (list, tuple)):
-            if is_void(key) or is_maybe(key):
-                result = call(context, key[1:], value)
-
-                if is_maybe(key) and result:
-                    return result
-            else:
-                return call(context, key, value)
+        elif is_reference(key):
+            assign(context, key[1:], value)
 
         else:
-            raise SyntaxError(f'Unexpected identifier {key}')
+            assign(context, key, partial(run, value, context))
 
     return None

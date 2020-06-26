@@ -176,3 +176,20 @@ class TestAlgorithms:
                 'fibo': [7]
             }
         }) == 13
+
+    def test_map(self):
+        assert run({
+            'map': {
+                '@params': ['list', 'callback'],
+                '?if': [{'is': [{'length': ['&list']}, 0]}, []],
+                '=list': {'copy': ['&list']},
+                '=current': {'callback': [{'pop': ['&list']}]},
+                '=result': {'map': ['&list', '&callback']},
+                '!push': ['&result', '&current'],
+                '#': '&result'
+            },
+            '#': {
+                'inc': {'+': ['&0', 1]},
+                'map': [[1, 2, 3], '&inc']
+            }
+        }) == [2, 3, 4]
