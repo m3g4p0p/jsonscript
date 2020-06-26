@@ -60,7 +60,7 @@ def run(json, context=None, *params):
     for key, value in json.items():
         prefix, func = key[:1], key[1:]
 
-        if prefix in STATEMENTS:
+        if prefix in STATEMENTS and (not func or func in context):
             if func:
                 result = call(context, func, value)
             else:

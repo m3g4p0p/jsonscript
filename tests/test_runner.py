@@ -22,12 +22,12 @@ class TestStatements:
 
 class TestControlFlow:
     def test_if(self):
-        assert run({'~': [True, 42]}) == 42
-        assert run({'~': [False, 42]}) is None
+        assert run({'?:': [True, 42]}) == 42
+        assert run({'?:': [False, 42]}) is None
 
     def test_if_else(self):
-        assert run({'~': [True, 42, 'spam']}) == 42
-        assert run({'~': [False, 42, 'eggs']}) == 'eggs'
+        assert run({'?:': [True, 42, 'spam']}) == 42
+        assert run({'?:': [False, 42, 'eggs']}) == 'eggs'
 
 
 class TestAssignment:
@@ -88,9 +88,9 @@ class TestFunctions:
 
     def test_maybe(self):
         assert run({
-            '?~': [False, 'spam'],
+            '??:': [False, 'spam'],
             '#': {
-                '?~': [True, 42]
+                '??:': [True, 42]
             }
         }) == 42
 
@@ -164,7 +164,7 @@ class TestAlgorithms:
     def test_factorial(self):
         assert run({
             'fac': {
-                '?~': [{'==': ['&0', 1]}, 1],
+                '??:': [{'==': ['&0', 1]}, 1],
                 '*': ['&0', {'fac': [{'-': ['&0', 1]}]}]
             },
             '#': {'fac': [5]}
@@ -173,7 +173,7 @@ class TestAlgorithms:
     def test_fibonacci(self):
         assert run({
             'fibo': {
-                '?~': [{'or': [
+                '??:': [{'or': [
                     {'==': ['&0', 1]},
                     {'==': ['&0', 2]}
                 ]}, 1],
@@ -191,7 +191,7 @@ class TestAlgorithms:
         assert run({
             'map': {
                 '@params': ['list', 'callback'],
-                '?~': [{'==': [{'length': ['&list']}, 0]}, []],
+                '??:': [{'==': [{'length': ['&list']}, 0]}, []],
                 '=list': {'copy': ['&list']},
                 '=current': {'callback': [{'pop': ['&list']}]},
                 '=result': {'map': ['&list', '&callback']},
