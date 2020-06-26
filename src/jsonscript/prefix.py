@@ -1,26 +1,17 @@
-def starts_with(value, char):
-    return isinstance(value, str) and value.startswith(char)
+import re
+
+
+def matches(pattern, value):
+    return isinstance(value, str) and re.match(pattern, value)
 
 
 def is_assignment(value):
-    return starts_with(value, '=')
+    return matches(r'=\w', value)
 
 
 def is_reference(value):
-    return starts_with(value, '&')
+    return matches(r'&\w', value)
 
 
 def is_directive(value):
-    return starts_with(value, '@')
-
-
-def is_return(value):
-    return starts_with(value, '#')
-
-
-def is_maybe(value):
-    return starts_with(value, '?')
-
-
-def is_void(value):
-    return starts_with(value, '!')
+    return matches(r'@\w', value)

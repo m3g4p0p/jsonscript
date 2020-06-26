@@ -1,6 +1,6 @@
 STD = {
     # Control flow
-    'if': lambda condition, if_true, if_false=None: (
+    '~': lambda condition, if_true, if_false=None: (
         if_true if condition else if_false
     ),
     # Logical operators
@@ -8,7 +8,11 @@ STD = {
     'and': lambda x, y: x and y,
     'not': lambda x: not x,
     # Comparisons
-    'is': lambda x, y: x == y,
+    '==': lambda x, y: x == y,
+    '<': lambda x, y: x < y,
+    '>': lambda x, y: x > y,
+    '<=': lambda x, y: x <= y,
+    '>=': lambda x, y: x >= y,
     # Arithmetics
     '+': lambda x, y: x + y,
     '-': lambda x, y: x - y,
