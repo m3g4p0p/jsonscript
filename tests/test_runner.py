@@ -11,7 +11,10 @@ class TestStatements:
         assert run({'?': 42, '#': 'spam'}) == 42
         assert run({'?': None, '#': 'spam'}) == 'spam'
 
-    def test_void(self, capsys):
+    def test_void(self):
+        assert run({'!': 42}) is None
+
+    def test_void_call(self, capsys):
         assert run({
             '!': {'print': ['spam']},
             '#': 42
