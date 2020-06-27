@@ -1,9 +1,13 @@
 from functools import partial
 
-from .prefix import is_assignment, is_directive, is_reference
+from .prefix import (
+    PREFIXES,
+    is_assignment,
+    is_directive,
+    is_reference,
+    is_valid_prefix,
+)
 from .std import STD
-
-STATEMENTS = ('#', '?', '!')
 
 
 class function:
@@ -73,7 +77,7 @@ def run(json, context=None, *params):
     for key, value in json.items():
         prefix, func = key[:1], key[1:]
 
-        if prefix in STATEMENTS and (not func or func.lstrip('&') in context):
+        if is_valid_prefix(context, prefix, func):
             if func:
                 result = call(context, func, value)
             else:
