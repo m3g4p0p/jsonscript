@@ -119,7 +119,7 @@ class TestReferences:
         })
 
 
-class TestParamsDirective:
+class TestDirectives:
     def test_params(self):
         assert run({
             'spam': {
@@ -132,7 +132,7 @@ class TestParamsDirective:
         }) == 42
 
 
-class TestBindDirective:
+class TestContextBinding:
     def test_preserve_scope(self):
         assert run({
             '=eggs': 1,
@@ -154,7 +154,7 @@ class TestBindDirective:
             '#': {
                 '@bind': ['spam'],
                 '=eggs': 41,
-                'spam': [1]
+                '&spam': [1]
             }
         }) == 42
 
@@ -171,6 +171,22 @@ class TestBindDirective:
                 '&ham': ['&spam']
             }
         }) == 42
+
+    def test_bind_prefixed(self, capsys):
+        assert run({
+            '=eggs': 1,
+            'spam': {
+                'print': [{'+': ['&0', '&eggs']}]
+            },
+            '#': {
+                '@bind': ['spam'],
+                '=eggs': 41,
+                '!&spam': [1],
+                '#': '&eggs'
+            }
+        }) == 41
+
+        assert capsys.readouterr().out == '42\n'
 
 
 class TestAlgorithms:
