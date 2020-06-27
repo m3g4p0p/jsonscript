@@ -6,6 +6,18 @@ from .std import STD
 STATEMENTS = ('#', '?', '!')
 
 
+class function:
+    def __init__(self, context, source):
+        self.context = context
+        self.source = source
+
+    def __call__(self, *params):
+        return run(self.source, self.context, *params)
+
+    def bind(self, context):
+        return function(context, self.source)
+
+
 def is_listable(value):
     return isinstance(value, (list, tuple))
 
@@ -44,13 +56,14 @@ def assign(context, key, value):
 
 
 def call(context, key, params):
-    func = context[key]
+    if is_reference(key):
+        func = context[key[1:]].bind(context)
+    else:
+        func = context[key]
+
     args = evaluate(context, params)
 
-    if callable(func):
-        return func(*args)
-
-    return run(func, context, *args)
+    return func(*args)
 
 
 def run(json, context=None, *params):
@@ -78,10 +91,7 @@ def run(json, context=None, *params):
         elif is_listable(value):
             return call(context, key, value)
 
-        elif is_reference(key):
-            assign(context, key[1:], value)
-
         else:
-            assign(context, key, partial(run, value, context))
+            assign(context, key, function(context, value))
 
     return None

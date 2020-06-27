@@ -3,7 +3,7 @@
 from jsonscript.runner import run
 
 
-class TestStatements:
+class TestStandalonePrefixes:
     def test_return(self):
         assert run({'#': 42}) == 42
 
@@ -21,6 +21,39 @@ class TestStatements:
         }) == 42
 
         assert capsys.readouterr().out == 'spam\n'
+
+
+class TestPrefixes:
+    def test_return(self):
+        assert run({
+            'spam': {
+                '+': ['&0', 1]
+            },
+            '#': {
+                'spam': [41]
+            }
+        }) == run({
+            'spam': {
+                '+': ['&0', 1]
+            },
+            '#spam': [41]
+        }) == 42
+
+    def test_void(self, capsys):
+        assert run({
+            '!print': ['spam'],
+            '#': 42
+        }) == 42
+
+        assert capsys.readouterr().out == 'spam\n'
+
+    def test_maybe(self):
+        assert run({
+            '??:': [False, 'spam'],
+            '#': {
+                '??:': [True, 42]
+            }
+        }) == 42
 
 
 class TestControlFlow:
@@ -70,71 +103,7 @@ class TestLists:
         }) == [[42], 'eggs']
 
 
-class TestFunctions:
-    def test_return(self):
-        assert run({
-            'spam': {
-                '+': ['&0', 1]
-            },
-            '#': {
-                'spam': [41]
-            }
-        }) == 42
-
-    def test_void(self, capsys):
-        assert run({
-            '!print': ['spam'],
-            '#': 42
-        }) == 42
-
-        assert capsys.readouterr().out == 'spam\n'
-
-    def test_maybe(self):
-        assert run({
-            '??:': [False, 'spam'],
-            '#': {
-                '??:': [True, 42]
-            }
-        }) == 42
-
-
-class TestDirectives:
-    def test_params(self):
-        assert run({
-            'spam': {
-                '@params': ['foo', 'bar'],
-                '+': ['&foo', '&bar']
-            },
-            '#': {
-                'spam': [40, 2]
-            }
-        }) == 42
-
-
 class TestReferences:
-    def test_preserve_scope(self):
-        assert run({
-            '=eggs': 1,
-            'spam': {
-                '+': ['&0', '&eggs']
-            },
-            '#': {
-                '=eggs': 41,
-                'spam': ['&eggs']
-            }
-        }) == 42
-
-    def test_scope_reference(self):
-        assert run({
-            '&spam': {
-                '+': ['&0', '&eggs']
-            },
-            '#': {
-                '=eggs': 41,
-                'spam': [1]
-            }
-        }) == 42
-
     def test_callback_reference(self):
         assert run({
             'spam': {
@@ -149,16 +118,57 @@ class TestReferences:
             }
         })
 
-    def test_combined(self):
+
+class TestParamsDirective:
+    def test_params(self):
         assert run({
-            '&spam': {'+': ['&0', '&eggs']},
-            '&ham': {
-                '@params': ['callback'],
-                'callback': [1]
+            'spam': {
+                '@params': ['foo', 'bar'],
+                '+': ['&foo', '&bar']
+            },
+            '#': {
+                'spam': [40, 2]
+            }
+        }) == 42
+
+
+class TestBindDirective:
+    def test_preserve_scope(self):
+        assert run({
+            '=eggs': 1,
+            'spam': {
+                '+': ['&0', '&eggs']
             },
             '#': {
                 '=eggs': 41,
-                'ham': ['&spam']
+                'spam': ['&eggs']
+            }
+        }) == 42
+
+    def test_bind_scope(self):
+        assert run({
+            '=eggs': 1,
+            'spam': {
+                '+': ['&0', '&eggs']
+            },
+            '#': {
+                '@bind': ['spam'],
+                '=eggs': 41,
+                'spam': [1]
+            }
+        }) == 42
+
+    def test_bound_reference(self):
+        assert run({
+            '=eggs': 1,
+            'spam': {'+': ['&0', '&eggs']},
+            'ham': {
+                '@params': ['callback'],
+                '&callback': [1]
+            },
+            '#': {
+                '=eggs': 41,
+                '&ham': ['&spam']
             }
         }) == 42
 
