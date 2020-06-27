@@ -4,7 +4,7 @@ from .prefix import (
     PREFIXES,
     is_assignment,
     is_directive,
-    is_reference,
+    is_binding,
     is_valid_prefix,
 )
 from .std import STD
@@ -49,7 +49,7 @@ def evaluate(context, value):
     if isinstance(value, dict):
         return run(value, context)
 
-    if is_reference(value):
+    if is_binding(value):
         return context[value[1:]]
 
     return value
@@ -60,7 +60,7 @@ def assign(context, key, value):
 
 
 def call(context, key, params):
-    if is_reference(key):
+    if is_binding(key):
         func = context[key[1:]].bind(context)
     else:
         func = context[key]
@@ -75,11 +75,11 @@ def run(json, context=None, *params):
     context = init_scope(context, params)
 
     for key, value in json.items():
-        prefix, func = key[:1], key[1:]
+        prefix, func_name = key[:1], key[1:]
 
-        if is_valid_prefix(context, prefix, func):
-            if func:
-                result = call(context, func, value)
+        if is_valid_prefix(context, prefix, func_name):
+            if func_name:
+                result = call(context, func_name, value)
             else:
                 result = evaluate(context, value)
 

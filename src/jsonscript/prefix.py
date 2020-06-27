@@ -11,7 +11,7 @@ def is_assignment(value):
     return matches(r'=\w', value)
 
 
-def is_reference(value):
+def is_binding(value):
     return matches(r'&\w', value)
 
 
@@ -19,5 +19,5 @@ def is_directive(value):
     return matches(r'@\w', value)
 
 
-def is_valid_prefix(context, prefix, func):
-    return prefix in PREFIXES and (not func or func.lstrip('&') in context)
+def is_valid_prefix(context, prefix, key):
+    return prefix in PREFIXES and (not key or key.lstrip('&') in context)
