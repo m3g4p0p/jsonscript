@@ -5,7 +5,6 @@ from .prefix import (
     is_assignment,
     is_directive,
     is_binding,
-    is_valid_prefix,
 )
 from .std import STD
 
@@ -77,7 +76,7 @@ def run(json, context=None, *params):
     for key, value in json.items():
         prefix, func_name = key[:1], key[1:]
 
-        if is_valid_prefix(context, prefix, func_name):
+        if prefix in PREFIXES:
             if func_name:
                 result = call(context, func_name, value)
             else:
