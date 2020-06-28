@@ -1,9 +1,24 @@
 from functools import partial
 
-from .prefix import is_assignment, is_directive, is_reference
+from .prefix import (
+    PREFIXES,
+    is_assignment,
+    is_directive,
+    is_binding,
+)
 from .std import STD
 
-STATEMENTS = ('#', '?', '!')
+
+class function:
+    def __init__(self, context, source):
+        self.context = context
+        self.source = source
+
+    def __call__(self, *params):
+        return run(self.source, self.context, *params)
+
+    def bind(self, context):
+        return function(context, self.source)
 
 
 def is_listable(value):
@@ -33,7 +48,7 @@ def evaluate(context, value):
     if isinstance(value, dict):
         return run(value, context)
 
-    if is_reference(value):
+    if is_binding(value):
         return context[value[1:]]
 
     return value
@@ -44,13 +59,14 @@ def assign(context, key, value):
 
 
 def call(context, key, params):
-    func = context[key]
+    if is_binding(key):
+        func = context[key[1:]].bind(context)
+    else:
+        func = context[key]
+
     args = evaluate(context, params)
 
-    if callable(func):
-        return func(*args)
-
-    return run(func, context, *args)
+    return func(*args)
 
 
 def run(json, context=None, *params):
@@ -58,11 +74,11 @@ def run(json, context=None, *params):
     context = init_scope(context, params)
 
     for key, value in json.items():
-        prefix, func = key[:1], key[1:]
+        prefix, func_name = key[:1], key[1:]
 
-        if prefix in STATEMENTS and (not func or func in context):
-            if func:
-                result = call(context, func, value)
+        if prefix in PREFIXES:
+            if func_name:
+                result = call(context, func_name, value)
             else:
                 result = evaluate(context, value)
 
@@ -78,10 +94,7 @@ def run(json, context=None, *params):
         elif is_listable(value):
             return call(context, key, value)
 
-        elif is_reference(key):
-            assign(context, key[1:], value)
-
         else:
-            assign(context, key, partial(run, value, context))
+            assign(context, key, function(context, value))
 
     return None

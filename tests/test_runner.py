@@ -3,7 +3,7 @@
 from jsonscript.runner import run
 
 
-class TestStatements:
+class TestStandalonePrefixes:
     def test_return(self):
         assert run({'#': 42}) == 42
 
@@ -23,14 +23,47 @@ class TestStatements:
         assert capsys.readouterr().out == 'spam\n'
 
 
+class TestPrefixes:
+    def test_return(self):
+        assert run({
+            'spam': {
+                '+': ['&0', 1]
+            },
+            '#': {
+                'spam': [41]
+            }
+        }) == run({
+            'spam': {
+                '+': ['&0', 1]
+            },
+            '#spam': [41]
+        }) == 42
+
+    def test_void(self, capsys):
+        assert run({
+            '!print': ['spam'],
+            '#': 42
+        }) == 42
+
+        assert capsys.readouterr().out == 'spam\n'
+
+    def test_maybe(self):
+        assert run({
+            '?if': [False, 'spam'],
+            '#': {
+                '?if': [True, 42]
+            }
+        }) == 42
+
+
 class TestControlFlow:
     def test_if(self):
-        assert run({'?:': [True, 42]}) == 42
-        assert run({'?:': [False, 42]}) is None
+        assert run({'if': [True, 42]}) == 42
+        assert run({'if': [False, 42]}) is None
 
     def test_if_else(self):
-        assert run({'?:': [True, 42, 'spam']}) == 42
-        assert run({'?:': [False, 42, 'eggs']}) == 'eggs'
+        assert run({'if': [True, 42, 'spam']}) == 42
+        assert run({'if': [False, 42, 'eggs']}) == 'eggs'
 
 
 class TestAssignment:
@@ -70,32 +103,20 @@ class TestLists:
         }) == [[42], 'eggs']
 
 
-class TestFunctions:
-    def test_return(self):
+class TestReferences:
+    def test_callback_reference(self):
         assert run({
             'spam': {
-                '+': ['&0', 1]
+                '@params': ['callback', 'value'],
+                'callback': ['&value']
             },
             '#': {
-                'spam': [41]
+                'eggs': {
+                    '+': ['&0', 1]
+                },
+                'spam': ['&eggs', 41]
             }
-        }) == 42
-
-    def test_void(self, capsys):
-        assert run({
-            '!print': ['spam'],
-            '#': 42
-        }) == 42
-
-        assert capsys.readouterr().out == 'spam\n'
-
-    def test_maybe(self):
-        assert run({
-            '??:': [False, 'spam'],
-            '#': {
-                '??:': [True, 42]
-            }
-        }) == 42
+        })
 
 
 class TestDirectives:
@@ -111,7 +132,7 @@ class TestDirectives:
         }) == 42
 
 
-class TestReferences:
+class TestContextBinding:
     def test_preserve_scope(self):
         assert run({
             '=eggs': 1,
@@ -124,50 +145,55 @@ class TestReferences:
             }
         }) == 42
 
-    def test_scope_reference(self):
+    def test_bind_scope(self):
         assert run({
-            '&spam': {
+            '=eggs': 1,
+            'spam': {
                 '+': ['&0', '&eggs']
             },
             '#': {
+                '@bind': ['spam'],
                 '=eggs': 41,
-                'spam': [1]
+                '&spam': [1]
             }
         }) == 42
 
-    def test_callback_reference(self):
+    def test_bound_reference(self):
         assert run({
-            'spam': {
-                '@params': ['callback', 'value'],
-                'callback': ['&value']
-            },
-            '#': {
-                'eggs': {
-                    '+': ['&0', 1]
-                },
-                'spam': ['&eggs', 41]
-            }
-        })
-
-    def test_combined(self):
-        assert run({
-            '&spam': {'+': ['&0', '&eggs']},
-            '&ham': {
+            '=eggs': 1,
+            'spam': {'+': ['&0', '&eggs']},
+            'ham': {
                 '@params': ['callback'],
-                'callback': [1]
+                '&callback': [1]
             },
             '#': {
                 '=eggs': 41,
-                'ham': ['&spam']
+                '&ham': ['&spam']
             }
         }) == 42
+
+    def test_bind_prefixed(self, capsys):
+        assert run({
+            '=eggs': 1,
+            'spam': {
+                'print': [{'+': ['&0', '&eggs']}]
+            },
+            '#': {
+                '@bind': ['spam'],
+                '=eggs': 41,
+                '!&spam': [1],
+                '#': '&eggs'
+            }
+        }) == 41
+
+        assert capsys.readouterr().out == '42\n'
 
 
 class TestAlgorithms:
     def test_factorial(self):
         assert run({
             'fac': {
-                '??:': [{'==': ['&0', 1]}, 1],
+                '?if': [{'==': ['&0', 1]}, 1],
                 '*': ['&0', {'fac': [{'-': ['&0', 1]}]}]
             },
             '#': {'fac': [5]}
@@ -176,7 +202,7 @@ class TestAlgorithms:
     def test_fibonacci(self):
         assert run({
             'fibo': {
-                '??:': [{'or': [
+                '?if': [{'or': [
                     {'==': ['&0', 1]},
                     {'==': ['&0', 2]}
                 ]}, 1],
@@ -194,7 +220,7 @@ class TestAlgorithms:
         assert run({
             'map': {
                 '@params': ['list', 'callback'],
-                '??:': [{'==': [{'length': ['&list']}, 0]}, []],
+                '?if': [{'==': [{'length': ['&list']}, 0]}, []],
                 '=list': {'copy': ['&list']},
                 '=current': {'callback': [{'pop': ['&list']}]},
                 '=result': {'map': ['&list', '&callback']},

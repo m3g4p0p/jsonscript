@@ -1,6 +1,6 @@
 STD = {
     # Control flow
-    '?:': lambda condition, if_true, if_false=None: (
+    'if': lambda condition, if_true, if_false=None: (
         if_true if condition else if_false
     ),
     # Logical operators
