@@ -17,3 +17,12 @@ def is_binding(value):
 
 def is_directive(value):
     return matches(r'@\w', value)
+
+
+def resolve(key):
+    prefix, name = key[:1], key[1:]
+
+    if prefix in PREFIXES:
+        return prefix, name
+
+    return None, key

@@ -1,7 +1,7 @@
 from functools import partial
 
 from .prefix import (
-    PREFIXES,
+    resolve,
     is_assignment,
     is_directive,
     is_binding,
@@ -74,11 +74,11 @@ def run(json, context=None, *params):
     context = init_scope(context, params)
 
     for key, value in json.items():
-        prefix, func_name = key[:1], key[1:]
+        prefix, name = resolve(key)
 
-        if prefix in PREFIXES:
-            if func_name:
-                result = call(context, func_name, value)
+        if prefix:
+            if name:
+                result = call(context, name, value)
             else:
                 result = evaluate(context, value)
 
