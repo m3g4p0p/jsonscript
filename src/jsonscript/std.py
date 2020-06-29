@@ -1,8 +1,23 @@
+def ternary(condition, if_true, if_false=None):
+    if condition:
+        return if_true
+
+    return if_false
+
+
+def read(filename):
+    with open(filename) as f:
+        return f.read()
+
+
+def write(filename, data):
+    with open(filename, 'w') as f:
+        return f.write(data)
+
+
 STD = {
     # Control flow
-    'if': lambda condition, if_true, if_false=None: (
-        if_true if condition else if_false
-    ),
+    'if': ternary,
     # Logical operators
     'or': lambda x, y: x or y,
     'and': lambda x, y: x and y,
@@ -23,6 +38,8 @@ STD = {
     'pop': lambda list: list.pop(),
     'length': lambda list: len(list),
     'copy': lambda list: list.copy(),
-    # Miscellaneous
-    'print': lambda *params: print(' '.join(map(str, params))),
+    # I/O
+    'print': print,
+    'read': read,
+    'write': write
 }

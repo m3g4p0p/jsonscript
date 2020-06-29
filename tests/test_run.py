@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from jsonscript.runner import run
+from jsonscript.interpreter import run
 
 
 class TestStandalonePrefixes:
@@ -189,7 +189,23 @@ class TestContextBinding:
         assert capsys.readouterr().out == '42\n'
 
 
-class TestAlgorithms:
+class TestIO:
+    def test_read_file(self, tmp_path):
+        f = tmp_path / 'spam.txt'
+        f.write_text('eggs')
+
+        assert run({
+            'read': [str(f)]
+        }) == 'eggs'
+
+    def test_write_file(self, tmp_path):
+        f = tmp_path / 'spam.txt'
+        run({'write': [str(f), 'eggs']})
+
+        assert f.read_text() == 'eggs'
+
+
+class TestRandomAlgorithms:
     def test_factorial(self):
         assert run({
             'fac': {
