@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 
 from jsonscript.interpreter import run
 
@@ -203,6 +204,38 @@ class TestIO:
         run({'write': [str(f), 'eggs']})
 
         assert f.read_text() == 'eggs'
+
+
+class TestModules:
+    def test_run_file(self, tmp_path):
+        main = tmp_path / 'spam.json'
+
+        with open(main, 'w') as f:
+            json.dump({'#': 'eggs'}, f)
+
+        assert run(main) == 'eggs'
+
+    def test_imports(self, tmp_path):
+        main = tmp_path / 'spam.json'
+        module = tmp_path / 'eggs.json'
+
+        with open(main, 'w') as f1, open(module, 'w') as f2:
+            json.dump({
+                '@import': {'eggs.json': ['func', 'foo']},
+                '=foo': {'*': ['&foo', 5]},
+                'func': [{'+': ['&foo', 1]}]
+            }, f1)
+
+            json.dump({
+                '@export': ['foo', 'bar', 'func'],
+                '=foo': 4,
+                '=bar': 2,
+                'func': {
+                    '*': ['&0', '&bar']
+                }
+            }, f2)
+
+        assert run(main) == 42
 
 
 class TestRandomAlgorithms:

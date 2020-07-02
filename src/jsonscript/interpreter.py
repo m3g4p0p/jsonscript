@@ -1,4 +1,7 @@
+import json
 from functools import partial
+from itertools import chain
+from pathlib import Path
 
 from .prefix import (
     resolve,
@@ -8,6 +11,8 @@ from .prefix import (
 )
 from .std import STD
 
+modules = {}
+
 
 class function:
     def __init__(self, context, source):
@@ -15,10 +20,23 @@ class function:
         self.source = source
 
     def __call__(self, *params):
-        return run(self.source, self.context, *params)
+        return run(self.source, self.context, params)
 
     def bind(self, context):
         return function(context, self.source)
+
+
+def abs_path(filename):
+    filepath = Path() / filename
+    return filepath.resolve()
+
+
+def load(filename):
+    filepath = abs_path(filename)
+    exports = modules.setdefault(filepath, {})
+
+    with open(filepath) as f:
+        return json.load(f), exports
 
 
 def is_listable(value):
@@ -32,12 +50,35 @@ def get_params(json, params):
     ), params)
 
 
-def init_scope(context=None, params=()):
+def get_imports(json, path):
+    result = {}
+
+    for filename, imports in json.get('@import', {}).items():
+        filepath = abs_path(path / filename)
+
+        if filepath not in modules:
+            run(filepath)
+
+        exports = modules.get(filepath, {})
+
+        result.update(map(
+            lambda key: (key, exports.get(key)),
+            imports
+        ))
+
+    return result.items()
+
+
+def update_exports(json, context, exports):
+    exports.update(map(
+        lambda key: (key, context.get(key)),
+        json.get('@export', ())
+    ))
+
+
+def init_scope(context=None, updates=()):
     context = (context or STD).copy()
-
-    for key, value in params:
-        assign(context, key, value)
-
+    context.update(updates)
     return context
 
 
@@ -69,9 +110,18 @@ def call(context, key, params):
     return func(*args)
 
 
-def run(json, context=None, *params):
-    params = get_params(json, params)
-    context = init_scope(context, params)
+def run(json, context=None, params=()):
+    path = Path.cwd() / '__main__'
+    exports = {}
+
+    if isinstance(json, (str, Path)):
+        path = (path.parent / json)
+        json, exports = load(path)
+
+    context = init_scope(context, chain(
+        get_params(json, params),
+        get_imports(json, path.parent)
+    ))
 
     for key, value in json.items():
         prefix, name = resolve(key)
@@ -96,5 +146,7 @@ def run(json, context=None, *params):
 
         else:
             assign(context, key, function(context, value))
+
+    update_exports(json, context, exports)
 
     return None

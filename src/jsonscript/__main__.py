@@ -7,7 +7,7 @@ def main():
     filename, *args = sys.argv
 
     with open(filename) as f:
-        return run(filename, None, *args)
+        return run(filename, None, args)
 
 
 if __name__ == '__main__':
