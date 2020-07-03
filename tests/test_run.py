@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 
+import pytest
+
 from jsonscript.interpreter import run
 
 
@@ -207,33 +209,92 @@ class TestIO:
 
 
 class TestModules:
-    def test_run_file(self, tmp_path):
-        main = tmp_path / 'spam.json'
 
-        with open(main, 'w') as f:
-            json.dump({'#': 'eggs'}, f)
+    @staticmethod
+    @pytest.fixture
+    def create_json(tmp_path):
+        def create(file_path, obj):
+            file = tmp_path / file_path
+            file.parent.mkdir(exist_ok=True, parents=True)
 
-        assert run(main) == 'eggs'
+            with open(file, 'w') as f:
+                json.dump(obj, f)
 
-    def test_imports(self, tmp_path):
-        main = tmp_path / 'spam.json'
-        module = tmp_path / 'eggs.json'
+            return file
 
-        with open(main, 'w') as f1, open(module, 'w') as f2:
-            json.dump({
-                '@import': {'eggs.json': ['func', 'foo']},
-                '=foo': {'*': ['&foo', 5]},
-                'func': [{'+': ['&foo', 1]}]
-            }, f1)
+        return create
 
-            json.dump({
-                '@export': ['foo', 'bar', 'func'],
-                '=foo': 4,
-                '=bar': 2,
-                'func': {
-                    '*': ['&0', '&bar']
-                }
-            }, f2)
+    def test_run_file(self, create_json):
+        main = create_json('spam.json', {'#': 42})
+        assert run(main) == 42
+
+    def test_imports(self, create_json):
+        main = create_json('spam.json', {
+            '@import': {
+                'eggs': ['func', 'foo']
+            },
+            '=foo': {'*': ['&foo', 5]},
+            'func': [{'+': ['&foo', 1]}]
+        })
+
+        create_json('eggs.json', {
+            '@export': ['foo', 'bar', 'func'],
+            '=foo': 4,
+            '=bar': 2,
+            'func': {
+                '*': ['&0', '&bar']
+            }
+        })
+
+        assert run(main) == 42
+
+    def test_run_module_only_once(self, create_json, capsys):
+        main = create_json('spam.json', {
+            '@import': {
+                'eggs': ['foo'],
+                'ham': ['bar']
+            },
+            '!print': ['spam'],
+            '+': ['&foo', '&bar']
+        })
+
+        create_json('eggs.json', {
+            '@import': {
+                'ham': ['bar']
+            },
+            '@export': ['foo'],
+            '!print': ['eggs'],
+            '=foo': {'+': [40, '&bar']},
+        })
+
+        create_json('ham.json', {
+            '@export': ['bar'],
+            '!print': ['ham'],
+            '=bar': 1,
+        })
+
+        assert run(main) == 42
+        assert capsys.readouterr().out == 'ham\neggs\nspam\n'
+
+    def test_relative_import_paths(self, create_json):
+        main = create_json('foo/spam.json', {
+            '@import': {
+                '../bar/eggs': ['value'],
+            },
+            '#': '&value'
+        })
+
+        create_json('bar/eggs.json', {
+            '@import': {
+                'baz/ham.json': ['value']
+            },
+            '@export': ['value']
+        })
+
+        create_json('bar/baz/ham.json', {
+            '@export': ['value'],
+            '=value': 42,
+        })
 
         assert run(main) == 42
 

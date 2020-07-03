@@ -4,7 +4,7 @@ from itertools import chain
 from pathlib import Path
 
 from .prefix import (
-    resolve,
+    resolve_prefix,
     is_assignment,
     is_directive,
     is_binding,
@@ -26,13 +26,13 @@ class function:
         return function(context, self.source)
 
 
-def abs_path(filename):
+def resolve_module(filename):
     filepath = Path() / filename
-    return filepath.resolve()
+    return filepath.with_suffix('.json').resolve()
 
 
 def load(filename):
-    filepath = abs_path(filename)
+    filepath = resolve_module(filename)
     exports = modules.setdefault(filepath, {})
 
     with open(filepath) as f:
@@ -54,7 +54,7 @@ def get_imports(json, path):
     result = {}
 
     for filename, imports in json.get('@import', {}).items():
-        filepath = abs_path(path / filename)
+        filepath = resolve_module(path / filename)
 
         if filepath not in modules:
             run(filepath)
@@ -124,7 +124,7 @@ def run(json, context=None, params=()):
     ))
 
     for key, value in json.items():
-        prefix, name = resolve(key)
+        prefix, name = resolve_prefix(key)
 
         if prefix:
             if name:
