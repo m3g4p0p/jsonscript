@@ -1,12 +1,24 @@
 from functools import partial
+from itertools import chain
 
+from .module import (
+    get_exports,
+    update_exports,
+    resolve_module,
+    init_module
+)
 from .prefix import (
-    resolve,
+    resolve_prefix,
     is_assignment,
     is_directive,
     is_binding,
 )
-from .std import STD
+from .util import (
+    assign,
+    filter_dict,
+    is_listable,
+)
+from .std import globals
 
 
 class function:
@@ -15,30 +27,38 @@ class function:
         self.source = source
 
     def __call__(self, *params):
-        return run(self.source, self.context, *params)
+        return run(self.source, self.context, params)
 
     def bind(self, context):
         return function(context, self.source)
 
 
-def is_listable(value):
-    return isinstance(value, (list, tuple))
+def init_context(source, context):
+    context = (context or globals).copy()
+    source, parent, module = init_module(source, context)
+
+    context.setdefault('__parent__', parent)
+    context.setdefault('__module__', module)
+
+    return source, context
 
 
-def get_params(json, params):
-    return zip(json.get(
+def get_params(source, params):
+    return zip(source.get(
         '@params',
         map(str, range(len(params)))
     ), params)
 
 
-def init_scope(context=None, params=()):
-    context = (context or STD).copy()
+def get_imports(source, context):
+    result = {}
 
-    for key, value in params:
-        assign(context, key, value)
+    for filename, imports in source.get('@import', {}).items():
+        module = resolve_module(context['__parent__'] / filename)
+        exports = get_exports(module, run)
+        result.update(filter_dict(exports, imports))
 
-    return context
+    return result.items()
 
 
 def evaluate(context, value):
@@ -54,10 +74,6 @@ def evaluate(context, value):
     return value
 
 
-def assign(context, key, value):
-    context[key] = value
-
-
 def call(context, key, params):
     if is_binding(key):
         func = context[key[1:]].bind(context)
@@ -65,16 +81,12 @@ def call(context, key, params):
         func = context[key]
 
     args = evaluate(context, params)
-
     return func(*args)
 
 
-def run(json, context=None, *params):
-    params = get_params(json, params)
-    context = init_scope(context, params)
-
-    for key, value in json.items():
-        prefix, name = resolve(key)
+def process(source, context):
+    for key, value in source.items():
+        prefix, name = resolve_prefix(key)
 
         if prefix:
             if name:
@@ -98,3 +110,17 @@ def run(json, context=None, *params):
             assign(context, key, function(context, value))
 
     return None
+
+
+def run(source, context=None, params=()):
+    source, context = init_context(source, context)
+
+    context.update(chain(
+        get_params(source, params),
+        get_imports(source, context)
+    ))
+
+    result = process(source, context)
+    update_exports(source, context)
+
+    return result

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from jsonscript.interpreter import run
 
 
@@ -119,7 +118,7 @@ class TestReferences:
         })
 
 
-class TestDirectives:
+class TestParameters:
     def test_params(self):
         assert run({
             'spam': {
@@ -152,7 +151,6 @@ class TestContextBinding:
                 '+': ['&0', '&eggs']
             },
             '#': {
-                '@bind': ['spam'],
                 '=eggs': 41,
                 '&spam': [1]
             }
@@ -179,7 +177,6 @@ class TestContextBinding:
                 'print': [{'+': ['&0', '&eggs']}]
             },
             '#': {
-                '@bind': ['spam'],
                 '=eggs': 41,
                 '!&spam': [1],
                 '#': '&eggs'
