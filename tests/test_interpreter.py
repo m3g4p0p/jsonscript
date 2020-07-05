@@ -55,14 +55,27 @@ class TestPrefixes:
         }) == 42
 
 
-class TestControlFlow:
-    def test_if(self):
-        assert run({'if': [True, 42]}) == 42
-        assert run({'if': [False, 42]}) is None
+class TestPipe:
+    def test_pipe_functions(self):
+        assert run({
+            'foo': {'+': ['&0', 1]},
+            'bar': {'*': ['&0', 2]},
+            'baz': {'/': ['&0', '&1']},
+            'baz|foo|bar': [60, 3]
+        }) == 42
 
-    def test_if_else(self):
-        assert run({'if': [True, 42, 'spam']}) == 42
-        assert run({'if': [False, 42, 'eggs']}) == 'eggs'
+    def test_pipe_bound_function(self):
+        assert run({
+            '=spam': 2,
+            'foo': {'+': ['&0', '&spam']},
+            'bar': {'*': ['&0', '&spam']},
+            'baz': {'/': ['&0', '&eggs']},
+            '#': {
+                '=spam': 1,
+                '=eggs': 3,
+                '&baz|&foo|bar': [60]
+            }
+        }) == 42
 
 
 class TestAssignment:
@@ -84,22 +97,6 @@ class TestAssignment:
             '=spam': {'#': 42},
             '#': '&spam'
         }) == 42
-
-
-class TestLists:
-    def test_push(self):
-        assert run({
-            '=spam': [42],
-            '!push': ['&spam', 'eggs'],
-            '#': '&spam'
-        }) == [42, 'eggs']
-
-    def test_pop(self):
-        assert run({
-            '=spam': [42, 'eggs'],
-            '=eggs': {'pop': ['&spam']},
-            '#': ['&spam', '&eggs']
-        }) == [[42], 'eggs']
 
 
 class TestReferences:
@@ -184,22 +181,6 @@ class TestContextBinding:
         }) == 41
 
         assert capsys.readouterr().out == '42\n'
-
-
-class TestIO:
-    def test_read_file(self, tmp_path):
-        f = tmp_path / 'spam.txt'
-        f.write_text('eggs')
-
-        assert run({
-            'read': [str(f)]
-        }) == 'eggs'
-
-    def test_write_file(self, tmp_path):
-        f = tmp_path / 'spam.txt'
-        run({'write': [str(f), 'eggs']})
-
-        assert f.read_text() == 'eggs'
 
 
 class TestRandomAlgorithms:

@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, reduce
 from itertools import chain
 
 from .module import (
@@ -75,6 +75,9 @@ def evaluate(context, value):
 
 
 def call(context, key, params):
+    if '|' in key:
+        return pipe(context, key.split('|'), params)
+
     if is_binding(key):
         func = context[key[1:]].bind(context)
     else:
@@ -82,6 +85,12 @@ def call(context, key, params):
 
     args = evaluate(context, params)
     return func(*args)
+
+
+def pipe(context, keys, params):
+    return reduce(lambda result, current: [
+        call(context, current, result)
+    ], keys, params)[0]
 
 
 def process(source, context):
