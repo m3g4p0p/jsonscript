@@ -31,13 +31,13 @@ def resolve_module(filename):
 def init_module(source, context):
     if isinstance(source, (str, Path)):
         module = resolve_module(source)
-        path = module.parent
+        parent = module.parent
 
         with open(module) as file:
             source = json.load(file)
 
     else:
-        module = (context or {}).get('__module__')
-        path = Path.cwd()
+        module = None
+        parent = Path.cwd()
 
-    return source, path, module
+    return source, parent, module

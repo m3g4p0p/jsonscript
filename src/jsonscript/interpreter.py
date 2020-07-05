@@ -33,13 +33,14 @@ class function:
         return function(context, self.source)
 
 
-def init_context(context, path, module):
+def init_context(source, context):
     context = (context or globals).copy()
+    source, parent, module = init_module(source, context)
 
-    context.setdefault('__path__', path)
+    context.setdefault('__parent__', parent)
     context.setdefault('__module__', module)
 
-    return context
+    return source, context
 
 
 def get_params(source, params):
@@ -53,7 +54,7 @@ def get_imports(source, context):
     result = {}
 
     for filename, imports in source.get('@import', {}).items():
-        module = resolve_module(context['__path__'] / filename)
+        module = resolve_module(context['__parent__'] / filename)
         exports = get_exports(module, run)
         result.update(filter_dict(exports, imports))
 
@@ -112,8 +113,7 @@ def process(source, context):
 
 
 def run(source, context=None, params=()):
-    source, path, module = init_module(source, context)
-    context = init_context(context, path, module)
+    source, context = init_context(source, context)
 
     context.update(chain(
         get_params(source, params),
