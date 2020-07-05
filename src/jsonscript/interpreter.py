@@ -1,17 +1,24 @@
-import json
 from functools import partial
 from itertools import chain
-from pathlib import Path
 
+from .module import (
+    get_exports,
+    update_exports,
+    resolve_module,
+    init_module
+)
 from .prefix import (
     resolve_prefix,
     is_assignment,
     is_directive,
     is_binding,
 )
-from .std import STD
-
-modules = {}
+from .util import (
+    assign,
+    filter_dict,
+    is_listable,
+)
+from .std import globals
 
 
 class function:
@@ -26,60 +33,28 @@ class function:
         return function(context, self.source)
 
 
-def resolve_module(filename):
-    filepath = Path() / filename
-    return filepath.with_suffix('.json').resolve()
+def init_context(context, path):
+    context = (context or globals).copy()
+    context.setdefault('__path__', path)
+    return context
 
 
-def load(filename):
-    filepath = resolve_module(filename)
-    exports = modules.setdefault(filepath, {})
-
-    with open(filepath) as f:
-        return json.load(f), exports
-
-
-def is_listable(value):
-    return isinstance(value, (list, tuple))
-
-
-def get_params(json, params):
-    return zip(json.get(
+def get_params(source, params):
+    return zip(source.get(
         '@params',
         map(str, range(len(params)))
     ), params)
 
 
-def get_imports(json, path):
+def get_imports(source, context):
     result = {}
 
-    for filename, imports in json.get('@import', {}).items():
-        filepath = resolve_module(path / filename)
-
-        if filepath not in modules:
-            run(filepath)
-
-        exports = modules.get(filepath, {})
-
-        result.update(map(
-            lambda key: (key, exports.get(key)),
-            imports
-        ))
+    for filename, imports in source.get('@import', {}).items():
+        module = resolve_module(context['__path__'] / filename)
+        exports = get_exports(module, run)
+        result.update(filter_dict(exports, imports))
 
     return result.items()
-
-
-def update_exports(json, context, exports):
-    exports.update(map(
-        lambda key: (key, context.get(key)),
-        json.get('@export', ())
-    ))
-
-
-def init_scope(context=None, updates=()):
-    context = (context or STD).copy()
-    context.update(updates)
-    return context
 
 
 def evaluate(context, value):
@@ -95,10 +70,6 @@ def evaluate(context, value):
     return value
 
 
-def assign(context, key, value):
-    context[key] = value
-
-
 def call(context, key, params):
     if is_binding(key):
         func = context[key[1:]].bind(context)
@@ -106,24 +77,19 @@ def call(context, key, params):
         func = context[key]
 
     args = evaluate(context, params)
-
     return func(*args)
 
 
-def run(json, context=None, params=()):
-    path = Path.cwd() / '__main__'
-    exports = {}
+def run(source, context=None, params=()):
+    source, path, exports = init_module(source)
+    context = init_context(context, path)
 
-    if isinstance(json, (str, Path)):
-        path = (path.parent / json)
-        json, exports = load(path)
-
-    context = init_scope(context, chain(
-        get_params(json, params),
-        get_imports(json, path.parent)
+    context.update(chain(
+        get_params(source, params),
+        get_imports(source, context)
     ))
 
-    for key, value in json.items():
+    for key, value in source.items():
         prefix, name = resolve_prefix(key)
 
         if prefix:
@@ -147,6 +113,7 @@ def run(json, context=None, params=()):
         else:
             assign(context, key, function(context, value))
 
-    update_exports(json, context, exports)
+    if exports is not None:
+        update_exports(source, context, exports)
 
     return None

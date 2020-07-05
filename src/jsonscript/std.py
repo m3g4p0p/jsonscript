@@ -15,7 +15,7 @@ def write(filename, data):
         return f.write(data)
 
 
-STD = {
+globals = {
     # Control flow
     'if': ternary,
     # Logical operators
@@ -40,6 +40,7 @@ STD = {
     'copy': lambda list: list.copy(),
     # I/O
     'print': print,
+    'input': input,
     'read': read,
     'write': write
 }

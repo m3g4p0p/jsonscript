@@ -298,6 +298,23 @@ class TestModules:
 
         assert run(main) == 42
 
+    def test_nested_imports(self, create_json):
+        main = create_json('foo/spam.json', {
+            '#': {
+                '@import': {
+                    '../bar/eggs': ['value'],
+                },
+                '#': '&value'
+            }
+        })
+
+        create_json('bar/eggs.json', {
+            '@export': ['value'],
+            '=value': 42
+        })
+
+        assert run(main) == 42
+
 
 class TestRandomAlgorithms:
     def test_factorial(self):
