@@ -298,19 +298,42 @@ class TestModules:
 
         assert run(main) == 42
 
-    def test_nested_imports(self, create_json):
-        main = create_json('foo/spam.json', {
+    def test_sublevel_imports(self, create_json):
+        main = create_json('spam.json', {
+            '@import': {
+                'eggs': ['foo'],
+            },
             '#': {
                 '@import': {
-                    '../bar/eggs': ['value'],
+                    'eggs': ['bar'],
                 },
-                '#': '&value'
+                '+': ['&foo', '&bar']
             }
         })
 
-        create_json('bar/eggs.json', {
-            '@export': ['value'],
-            '=value': 42
+        create_json('eggs.json', {
+            '@export': ['foo', 'bar'],
+            '=foo': 41,
+            '=bar': 1
+        })
+
+        assert run(main) == 42
+
+    def test_sublevel_exports(self, create_json):
+        main = create_json('spam.json', {
+            '@import': {
+                'eggs': ['foo', 'bar'],
+            },
+            '+': ['&foo', '&bar']
+        })
+
+        create_json('eggs.json', {
+            '@export': ['foo'],
+            '=foo': 41,
+            '#': {
+                '@export': ['bar'],
+                '=bar': 1
+            }
         })
 
         assert run(main) == 42

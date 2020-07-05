@@ -33,9 +33,12 @@ class function:
         return function(context, self.source)
 
 
-def init_context(context, path):
+def init_context(context, path, module):
     context = (context or globals).copy()
+
     context.setdefault('__path__', path)
+    context.setdefault('__module__', module)
+
     return context
 
 
@@ -80,15 +83,7 @@ def call(context, key, params):
     return func(*args)
 
 
-def run(source, context=None, params=()):
-    source, path, exports = init_module(source)
-    context = init_context(context, path)
-
-    context.update(chain(
-        get_params(source, params),
-        get_imports(source, context)
-    ))
-
+def process(source, context):
     for key, value in source.items():
         prefix, name = resolve_prefix(key)
 
@@ -113,7 +108,19 @@ def run(source, context=None, params=()):
         else:
             assign(context, key, function(context, value))
 
-    if exports is not None:
-        update_exports(source, context, exports)
-
     return None
+
+
+def run(source, context=None, params=()):
+    source, path, module = init_module(source, context)
+    context = init_context(context, path, module)
+
+    context.update(chain(
+        get_params(source, params),
+        get_imports(source, context)
+    ))
+
+    result = process(source, context)
+    update_exports(source, context)
+
+    return result

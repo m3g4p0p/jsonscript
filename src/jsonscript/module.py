@@ -13,8 +13,14 @@ def get_exports(module, initializer=None):
     return modules.setdefault(module, {})
 
 
-def update_exports(source, context, exports):
-    exports.update(filter_dict(context, source.get('@export', ())))
+def update_exports(source, context):
+    module = context.get('__module__')
+
+    if module is None:
+        return
+
+    exports = filter_dict(context, source.get('@export', ()))
+    get_exports(module).update(exports)
 
 
 def resolve_module(filename):
@@ -22,19 +28,16 @@ def resolve_module(filename):
     return path.resolve().with_suffix('.json')
 
 
-def init_module(source):
+def init_module(source, context):
     if isinstance(source, (str, Path)):
         module = resolve_module(source)
+        path = module.parent
 
         with open(module) as file:
             source = json.load(file)
 
-        path = module.parent
-        exports = get_exports(module)
-
     else:
-        source = source
+        module = (context or {}).get('__module__')
         path = Path.cwd()
-        exports = None
 
-    return source, path, exports
+    return source, path, module
