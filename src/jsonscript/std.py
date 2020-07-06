@@ -5,6 +5,13 @@ def ternary(condition, if_true, if_false=None):
     return if_false
 
 
+def number(value):
+    try:
+        return int(value)
+    except ValueError:
+        return float(value)
+
+
 def read(filename):
     with open(filename) as f:
         return f.read()
@@ -33,10 +40,17 @@ globals = {
     '-': lambda x, y: x - y,
     '*': lambda x, y: x * y,
     '/': lambda x, y: x / y,
+    # Casting
+    'number': number,
+    'string': str,
+    'boolean': bool,
     # Lists
+    'length': lambda list: len(list),
     'push': lambda list, value: list.append(value),
     'pop': lambda list: list.pop(),
-    'length': lambda list: len(list),
+    'slice': lambda list, start=None, end=None: list[start:end],
+    'get': lambda list, index: list[index],
+    'set': lambda list, index, value: list.__setitem__(index, value),
     'copy': lambda list: list.copy(),
     # I/O
     'print': print,

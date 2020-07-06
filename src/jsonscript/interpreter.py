@@ -76,7 +76,7 @@ def evaluate(context, value):
 
 def call(context, key, params):
     if '|' in key:
-        return pipe(context, key.split('|'), params)
+        return pipe(context, key, params)
 
     if is_binding(key):
         func = context[key[1:]].bind(context)
@@ -87,7 +87,9 @@ def call(context, key, params):
     return func(*args)
 
 
-def pipe(context, keys, params):
+def pipe(context, key, params):
+    keys = key.split('|')
+
     return reduce(lambda result, current: [
         call(context, current, result)
     ], keys, params)[0]
