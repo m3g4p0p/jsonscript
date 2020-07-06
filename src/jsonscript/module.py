@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from .util import filter_dict
+from .util import get_items
 
 modules = {}
 
@@ -19,7 +19,7 @@ def update_exports(source, context):
     if module is None:
         return
 
-    exports = filter_dict(context, source.get('@export', ()))
+    exports = get_items(context, source.get('@export', ()))
     get_exports(module).update(exports)
 
 

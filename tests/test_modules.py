@@ -45,6 +45,32 @@ class TestModules:
 
         assert run(main) == 42
 
+    def test_import_all(self, create_json):
+        imports_all = create_json('spam.json', {
+            '@import': {
+                'eggs': True
+            },
+            '+': ['&foo', '&bar']
+        })
+
+        imports_foo = create_json('ham.json', {
+            '@import': {
+                'eggs': ['foo']
+            },
+            '+': ['&foo', '&bar']
+        })
+
+        create_json('eggs.json', {
+            '@export': ['foo', 'bar'],
+            '=foo': 41,
+            '=bar': 1,
+        })
+
+        assert run(imports_all) == 42
+
+        with pytest.raises(KeyError):
+            run(imports_foo)
+
     def test_run_module_only_once(self, create_json, capsys):
         main = create_json('spam.json', {
             '@import': {

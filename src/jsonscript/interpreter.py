@@ -15,7 +15,7 @@ from .prefix import (
 )
 from .util import (
     assign,
-    filter_dict,
+    get_items,
     is_listable,
 )
 from .std import globals
@@ -44,10 +44,13 @@ def init_context(source, context):
 
 
 def get_params(source, params):
-    return zip(source.get(
+    if params is None:
+        return ()
+
+    return chain(zip(source.get(
         '@params',
         map(str, range(len(params)))
-    ), params)
+    ), params), (('args', params),))
 
 
 def get_imports(source, context):
@@ -56,7 +59,20 @@ def get_imports(source, context):
     for filename, imports in source.get('@import', {}).items():
         module = resolve_module(context['__parent__'] / filename)
         exports = get_exports(module, run)
-        result.update(filter_dict(exports, imports))
+
+        if imports is True:
+            result.update(exports)
+        else:
+            result.update(get_items(exports, imports))
+
+    return result.items()
+
+
+def get_scoped(source, context):
+    result = {}
+
+    for scoped in source.get('@use', ()):
+        result.update(context[scoped])
 
     return result.items()
 
@@ -123,12 +139,14 @@ def process(source, context):
     return None
 
 
-def run(source, context=None, params=()):
+def run(source, context=None, params=None):
     source, context = init_context(source, context)
 
     context.update(chain(
+        get_imports(source, context),
+        get_scoped(source, context),
         get_params(source, params),
-        get_imports(source, context)
+        (('this', context),)
     ))
 
     result = process(source, context)

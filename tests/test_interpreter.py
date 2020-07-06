@@ -69,10 +69,91 @@ class TestParameters:
                 '@params': ['foo', 'bar'],
                 '+': ['&foo', '&bar']
             },
-            '#': {
-                'spam': [40, 2]
-            }
+            '#spam': [40, 2]
         }) == 42
+
+    def test_args(self):
+        assert run({
+            'spam': {
+                '#': '&args'
+            },
+            '#spam': [1, 2, 3]
+        }) == (1, 2, 3)
+
+        assert run({
+            'spam': {
+                '#': {
+                    '#': '&args'
+                }
+            },
+            '#spam': [1, 2, 3]
+        }) == (1, 2, 3)
+
+    def test_this(self):
+        assert run({
+            'factory': {
+                '=value': 42,
+                '#': '&this'
+            },
+            '=spam': {'factory': []},
+            'get': ['&spam', 'value']
+        }) == 42
+
+        assert run({
+            'factory': {
+                '=value': '&0',
+                '#': '&this'
+            },
+            '=spam': {'factory': ['foo']},
+            '=eggs': {'factory': ['bar']},
+            '#': [
+                {'get': ['&spam', 'value']},
+                {'get': ['&eggs', 'value']},
+            ]
+        }) == ['foo', 'bar']
+
+
+class TestUse:
+    def test_use_scoped(self):
+        assert run({
+            '=spam': {
+                '=foo': 41,
+                '#': '&this'
+            },
+            'eggs': {
+                '@use': ['spam'],
+                '+': ['&foo', '&0']
+            },
+            '#eggs': [1]
+        }) == 42
+
+    def test_override_values(self):
+        assert run({
+            '=spam': {
+                '=foo': 41,
+                '=bar': 7,
+                '#': '&this'
+            },
+            'eggs': {
+                '@use': ['spam'],
+                '=bar': 1,
+                '+': ['&foo', '&bar']
+            },
+            '#eggs': []
+        }) == 42
+
+    def test_referential_identity(self):
+        assert run({
+            '=spam': {
+                '=foo': [1],
+                '#': '&this'
+            },
+            '!': {
+                '@use': ['spam'],
+                'push': ['&foo', 2]
+            },
+            'get': ['&spam', 'foo']
+        }) == [1, 2]
 
 
 class TestContextBinding:
