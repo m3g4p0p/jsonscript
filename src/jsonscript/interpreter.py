@@ -18,6 +18,7 @@ from .util import (
     get_items,
     is_listable,
 )
+from .scope import scope
 from .std import globals
 
 
@@ -34,8 +35,8 @@ class function:
 
 
 def init_context(source, context):
-    context = (context or globals).copy()
-    source, parent, module = init_module(source, context)
+    context = scope(context or globals)
+    source, parent, module = init_module(source)
 
     context.setdefault('__parent__', parent)
     context.setdefault('__module__', module)
