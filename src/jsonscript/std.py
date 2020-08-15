@@ -22,7 +22,7 @@ def write(filename, data):
         return f.write(data)
 
 
-globals = {
+std = {
     # Control flow
     'if': ternary,
     # Logical operators

@@ -13,13 +13,27 @@ from .prefix import (
     is_directive,
     is_binding,
 )
+from .std import std
 from .util import (
     assign,
     get_items,
     is_listable,
 )
-from .scope import scope
-from .std import globals
+
+
+class scoped(dict):
+    def __init__(self, parent, module):
+        self.parent = parent
+        self.module = module
+
+    def __getitem__(self, key):
+        if super().__contains__(key):
+            return super().__getitem__(key)
+
+        return self.parent[key]
+
+    def __contains__(self, key):
+        return super().__contains__(key) or key in self.parent
 
 
 class function:
@@ -34,12 +48,10 @@ class function:
         return function(context, self.source)
 
 
-def init_context(source, context):
-    context = scope(context or globals)
-    source, parent, module = init_module(source)
-
-    context.setdefault('__parent__', parent)
-    context.setdefault('__module__', module)
+def init_context(source, parent):
+    parent = parent or scoped(std, None)
+    source, module = init_module(source, parent)
+    context = scoped(parent, module)
 
     return source, context
 
@@ -58,7 +70,7 @@ def get_imports(source, context):
     result = {}
 
     for filename, imports in source.get('@import', {}).items():
-        module = resolve_module(context['__parent__'] / filename)
+        module = resolve_module(filename, context)
         exports = get_exports(module, run)
 
         if imports is True:
